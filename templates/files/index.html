@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}文件管理 - AiList{% endblock %}
+
+{% block content %}
+<div class="files-container">
+    <div class="files-header">
+        <h1>文件管理</h1>
+        <div class="header-actions">
+            <form id="searchForm" class="search-form" action="{{ url_for('files.index') }}" method="get">
+                <div class="search-input-group">
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="搜索文件名..." class="search-input">
+                    <button type="button" class="button secondary" onclick="toggleAdvancedSearch()">高级搜索</button>
+                    <button type="submit" class="button primary">搜索</button>
+                    {% if search_query or date_from or date_to or size_from or size_to or file_type %}
+                        <a href="{{ url_for('files.index') }}" class="button small">清除</a>
+                    {% endif %}
+                </div>
+                
+                <div id="advancedSearch" class="advanced-search" style="display: none;">
+                    <div class="search-row">
+                        <div class="search-group">
+                            <label>上传时间</label>
+                            <div class="date-range">
+                                <input type="date" name="date_from" value="{{ date_from }}" class="date-input">
+                                <span>至</span>
+                                <input type="date" name="date_to" value="{{ date_to }}" class="date-input">
+                            </div>
+                        </div>
+                        <div class="search-group">
+                            <label>文件大小</label>
+                            <div class="size-range">
+                                <input type="number" name="size_from" value="{{ size_from }}" placeholder="最小" class="size-input">
+                                <span>至</span>
+                                <input type="number" name="size_to" value="{{ size_to }}" placeholder="最大" class="size-input">
+                                <select name="size_unit" class="size-unit">
+                                    <option value="B" {% if size_unit == 'B' %}selected{% endif %}>B</option>
+                                    <option value="KB" {% if size_unit == 'KB' %}selected{% endif %}>KB</option>
+                                    <option value="MB" {% if size_unit == 'MB' %}selected{% endif %}>MB</option>
+                                    <option value="GB" {% if size_unit == 'GB' %}selected{% endif %}>GB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="search-group">
+                            <label>文件类型</label>
+                            <select name="file_type" class="type-select">
+                                <option value="">全部类型</option>
+                                <option value="image" {% if file_type == 'image' %}selected{% endif %}>图片</option>
+                                <option value="document" {% if file_type == 'document' %}selected{% endif %}>文档</option>
+                                <option value="spreadsheet" {% if file_type == 'spreadsheet' %}selected{% endif %}>表格</option>
+                                <option value="presentation" {% if file_type == 'presentation' %}selected{% endif %}>演示文稿</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- 存储池切换下拉菜单 -->
+            <div class="storage-switcher">
+                <label for="storageSelect">切换存储池:</label>
+                <select id="storageSelect" onchange="switchStoragePool(this.value)">
+                    {% for storage in all_storages %}
+                        <option value="{{ storage.id }}" {% if active_pool and storage.id == active_pool.id %}selected{% endif %}>
+                            {{ storage.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="upload-section">
+                <form id="uploadForm" action="{{ url_for('files.upload_file') }}" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" id="fileInput" style="display: none;">
+                    <button type="button" class="button primary" onclick="document.getElementById('fileInput').click()">
+                        选择文件
+                    </button>
+                    <button type="submit" class="button secondary" id="uploadButton" style="display: none;">
+                        上传
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="files-list">
+        {% if files %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>类型</th>
+                        <th>大小</th>
+                        <th>上传时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td>{{ file.original_name }}</td>
+                        <td>
+                            {% if file.type.startswith('image/') %}
+                                图片
+                            {% elif file.type.startswith('video/') %}
+                                视频
+                            {% elif file.type.startswith('audio/') %}
+                                音频
+                            {% elif file.type == 'application/pdf' %}
+                                PDF 文档
+                            {% elif file.type == 'application/zip' or file.type == 'application/x-tar' or file.type == 'application/x-rar-compressed' %}
+                                压缩文件
+                            {% elif file.type.startswith('text/') %}
+                                文本文件
+                            {% elif file.type.startswith(('application/vnd.openxmlformats-officedocument.wordprocessingml', 'application/msword')) %}
+                                文档
+                            {% elif file.type.startswith(('application/vnd.openxmlformats-officedocument.spreadsheetml', 'application/vnd.ms-excel')) %}
+                                表格
+                            {% elif file.type.startswith(('application/vnd.openxmlformats-officedocument.presentationml', 'application/vnd.ms-powerpoint')) %}
+                                演示文稿
+                            {% else %}
+                                {{ file.type }} <!-- 默认显示原始 MIME 类型 -->
+                            {% endif %}
+                        </td>
+                        <td>{{ file.size|filesizeformat }}</td>
+                        <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if file.type.startswith(('application/vnd.openxmlformats-officedocument.wordprocessingml', 'application/msword', 'application/vnd.openxmlformats-officedocument.spreadsheetml', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.presentationml', 'application/vnd.ms-powerpoint', 'image/')) %}
+                                <a href="{{ url_for('preview.preview_file', file_id=file.id) }}" class="button small">预览</a>
+                            {% endif %}
+                            <a href="{{ url_for('files.download_file', file_id=file.id) }}" class="button small">下载</a>
+                            <button onclick="deleteFile('{{ url_for('files.delete_file', file_id=file.id) }}')" class="button small danger">删除</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-files">
+                {% if search_query or date_from or date_to or size_from or size_to or file_type %}
+                    <p>没有找到匹配的文件</p>
+                {% else %}
+                    <p>暂无文件</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.files-container {
+    padding: 2rem;
+}
+
+.files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-width: 200px;
+}
+
+.advanced-search {
+    background: white;
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 0.5rem;
+}
+
+.search-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.search-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.search-group label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.date-range,
+.size-range {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.date-input,
+.size-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 150px;
+}
+
+.size-unit,
+.type-select {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+}
+
+.upload-section {
+    display: flex;
+    gap: 1rem;
+}
+
+.files-list table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.files-list th,
+.files-list td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.files-list th {
+    background-color: var(--background-color);
+    font-weight: 600;
+}
+
+.button.small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+}
+
+.button.danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.button.danger:hover {
+    background-color: #c0392b;
+}
+
+.no-files {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.no-files p {
+    color: #666;
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteFile(deleteUrl) {
+    if (confirm('确定要删除此文件吗？')) {
+        fetch(deleteUrl, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+                location.reload(); // 刷新页面
+            } else if (data.error) {
+                alert('删除失败: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('删除文件时发生错误:', error);
+            alert('删除文件时发生错误。');
+        });
+    }
+}
+
+function toggleAdvancedSearch() {
+    const advancedSearch = document.getElementById('advancedSearch');
+    if (advancedSearch.style.display === 'none') {
+        advancedSearch.style.display = 'flex';
+    } else {
+        advancedSearch.style.display = 'none';
+    }
+}
+
+// 文件上传表单处理
+document.getElementById('fileInput').addEventListener('change', function() {
+    if (this.files.length > 0) {
+        document.getElementById('uploadButton').style.display = 'inline-block';
+    } else {
+        document.getElementById('uploadButton').style.display = 'none';
+    }
+});
+
+function switchStoragePool(storageId) {
+    if (confirm('确定要切换到此存储池吗？')) {
+        fetch(`/api/storage/${storageId}/activate`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('切换失败: ' + data.error);
+            } else {
+                alert('存储池已切换！');
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('切换存储池时发生错误:', error);
+            alert('切换存储池时发生错误。');
+        });
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - 预览{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-header">
+        <h1>{{ filename }}</h1>
+        <div class="preview-actions">
+            <a href="{{ url_for('files.download_file', filename=filename) }}" class="button primary">下载</a>
+            <a href="{{ url_for('files.index') }}" class="button secondary">返回列表</a>
+        </div>
+    </div>
+
+    <div class="preview-content excel-preview">
+        <div class="sheet-tabs">
+            {% for sheet in sheets %}
+                <button class="sheet-tab {% if loop.first %}active{% endif %}" 
+                        onclick="showSheet('{{ loop.index0 }}')">
+                    {{ sheet.name }}
+                </button>
+            {% endfor %}
+        </div>
+
+        {% for sheet in sheets %}
+            <div class="sheet-content {% if loop.first %}active{% endif %}" id="sheet-{{ loop.index0 }}">
+                <div class="table-container">
+                    <table>
+                        {% for row in sheet.data %}
+                            <tr>
+                                {% for cell in row %}
+                                    <td>{{ cell }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.preview-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preview-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.preview-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sheet-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.sheet-tab {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.sheet-tab:hover {
+    background-color: var(--background-color);
+}
+
+.sheet-tab.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.sheet-content {
+    display: none;
+}
+
+.sheet-content.active {
+    display: block;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border-color);
+}
+
+.table-container th,
+.table-container td {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table-container th {
+    background-color: var(--background-color);
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showSheet(index) {
+    // 隐藏所有工作表内容
+    document.querySelectorAll('.sheet-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // 取消所有标签的激活状态
+    document.querySelectorAll('.sheet-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // 显示选中的工作表内容
+    document.getElementById(`sheet-${index}`).classList.add('active');
+    
+    // 激活对应的标签
+    document.querySelectorAll('.sheet-tab')[index].classList.add('active');
+}
+</script>
+{% endblock %} 

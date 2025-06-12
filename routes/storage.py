@@ -1,81 +1,129 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from models.storage import Storage
 from database import db_session
 import json
 
 storage_bp = Blueprint('storage', __name__)
 
-@storage_bp.route('/api/storage/list', methods=['GET'])
-def list_storages():
-    """获取所有存储池列表"""
+@storage_bp.route('/storage')
+def index():
+    """存储管理页面"""
+    storages = db_session.query(Storage).all()
+    return render_template('storage/index.html', storages=storages)
+
+@storage_bp.route('/api/storage', methods=['GET'])
+def list_storage():
+    """获取存储池列表（API）"""
     storages = db_session.query(Storage).all()
     return jsonify([storage.to_dict() for storage in storages])
 
-@storage_bp.route('/api/storage/config', methods=['GET', 'POST'])
-def storage_config():
-    """获取或设置当前存储池配置"""
-    if request.method == 'GET':
-        # 获取当前活动的存储池
-        storage = db_session.query(Storage).filter_by(is_active=1).first()
-        if not storage:
-            return jsonify({'error': '没有活动的存储池'}), 404
-        return jsonify(storage.to_dict())
+@storage_bp.route('/api/storage', methods=['POST'])
+def add_storage():
+    """添加存储池"""
+    data = request.form
     
-    elif request.method == 'POST':
-        data = request.get_json()
-        
-        # 验证必要字段
-        required_fields = ['name', 'type', 'config']
-        if not all(field in data for field in required_fields):
-            return jsonify({'error': '缺少必要字段'}), 400
-        
-        # 验证存储类型
-        if data['type'] not in ['local', 's3']:
-            return jsonify({'error': '不支持的存储类型'}), 400
-        
-        # 验证配置
-        try:
-            config = json.loads(data['config'])
-            if data['type'] == 'local':
-                if 'path' not in config:
-                    return jsonify({'error': '本地存储需要指定路径'}), 400
-            elif data['type'] == 's3':
-                required_s3_fields = ['access_key', 'secret_key', 'bucket', 'region']
-                if not all(field in config for field in required_s3_fields):
-                    return jsonify({'error': 'S3存储需要指定所有必要字段'}), 400
-        except json.JSONDecodeError:
-            return jsonify({'error': '配置格式错误'}), 400
-        
-        # 创建新的存储池
+    # 验证必填字段
+    if not data.get('name') or not data.get('type'):
+        flash('名称和类型是必填项', 'error')
+        return redirect(url_for('storage.index'))
+    
+    # 根据存储类型验证配置
+    config = {}
+    if data['type'] == 'local':
+        if not data.get('path'):
+            flash('本地存储需要指定路径', 'error')
+            return redirect(url_for('storage.index'))
+        config['path'] = data['path']
+    elif data['type'] == 's3':
+        required_fields = ['access_key', 'secret_key', 'bucket', 'region']
+        for field in required_fields:
+            if not data.get(field):
+                flash(f'S3 存储需要指定 {field}', 'error')
+                return redirect(url_for('storage.index'))
+        config = {
+            'access_key': data['access_key'],
+            'secret_key': data['secret_key'],
+            'bucket': data['bucket'],
+            'region': data['region']
+        }
+    else:
+        flash('不支持的存储类型', 'error')
+        return redirect(url_for('storage.index'))
+    
+    try:
+        # 创建存储池
         storage = Storage(
             name=data['name'],
             type=data['type'],
-            config=data['config'],
-            is_active=1  # 新创建的存储池设为活动状态
+            config=json.dumps(config),
+            is_active=0  # 新创建的存储池默认非活动
         )
         
-        # 将其他存储池设为非活动
-        db_session.query(Storage).update({'is_active': 0})
-        
-        # 保存新存储池
         db_session.add(storage)
         db_session.commit()
         
-        return jsonify(storage.to_dict())
+        flash('存储池添加成功！', 'success')
+        return redirect(url_for('storage.index'))
+    
+    except Exception as e:
+        flash(f'添加存储池失败: {str(e)}', 'error')
+        return redirect(url_for('storage.index'))
 
-@storage_bp.route('/api/storage/switch/<int:storage_id>', methods=['POST'])
-def switch_storage(storage_id):
-    """切换到指定的存储池"""
-    # 查找目标存储池
-    storage = db_session.query(Storage).get(storage_id)
-    if not storage:
-        return jsonify({'error': '存储池不存在'}), 404
+@storage_bp.route('/api/storage/<int:storage_id>/activate', methods=['POST'])
+def activate_storage(storage_id):
+    """激活存储池"""
+    try:
+        # 将所有存储池设置为非活动
+        db_session.query(Storage).update({Storage.is_active: 0})
+        
+        # 激活指定的存储池
+        storage = db_session.query(Storage).get(storage_id)
+        if not storage:
+            return jsonify({'error': '存储池不存在'}), 404
+        
+        storage.is_active = 1
+        db_session.commit()
+        
+        return jsonify(storage.to_dict())
     
-    # 将所有存储池设为非活动
-    db_session.query(Storage).update({'is_active': 0})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@storage_bp.route('/api/storage/<int:storage_id>/deactivate', methods=['POST'])
+def deactivate_storage(storage_id):
+    """停用存储池"""
+    try:
+        storage = db_session.query(Storage).get(storage_id)
+        if not storage:
+            return jsonify({'error': '存储池不存在'}), 404
+        
+        if not storage.is_active:
+            return jsonify({'message': '存储池已是非活动状态'}), 200
+
+        storage.is_active = 0
+        db_session.commit()
+        
+        return jsonify(storage.to_dict())
     
-    # 将目标存储池设为活动
-    storage.is_active = 1
-    db_session.commit()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@storage_bp.route('/api/storage/<int:storage_id>', methods=['DELETE'])
+def delete_storage(storage_id):
+    """删除存储池"""
+    try:
+        storage = db_session.query(Storage).get(storage_id)
+        if not storage:
+            return jsonify({'error': '存储池不存在'}), 404
+        
+        # 不允许删除活动的存储池
+        if storage.is_active:
+            return jsonify({'error': '不能删除活动的存储池，请先停用'}), 400
+        
+        db_session.delete(storage)
+        db_session.commit()
+        
+        return jsonify({'message': '存储池已删除'})
     
-    return jsonify(storage.to_dict()) 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 

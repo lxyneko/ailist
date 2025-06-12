@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - 预览{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-header">
+        <h1>{{ filename }}</h1>
+        <div class="preview-actions">
+            <a href="{{ url_for('files.download_file', filename=filename) }}" class="button primary">下载</a>
+            <a href="{{ url_for('files.index') }}" class="button secondary">返回列表</a>
+        </div>
+    </div>
+
+    <div class="preview-content word-preview">
+        {% for item in content %}
+            {% if item.type == 'paragraph' %}
+                <p>{{ item.text }}</p>
+            {% elif item.type == 'table' %}
+                <div class="table-container">
+                    <table>
+                        {% for row in item.data %}
+                            <tr>
+                                {% for cell in row %}
+                                    <td>{{ cell }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.preview-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preview-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.preview-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.word-preview p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.table-container {
+    margin: 1.5rem 0;
+    overflow-x: auto;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border-color);
+}
+
+.table-container th,
+.table-container td {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.table-container th {
+    background-color: var(--background-color);
+    font-weight: 600;
+}
+</style>
+{% endblock %} 

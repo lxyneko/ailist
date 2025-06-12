@@ -8,6 +8,7 @@ class File(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
+    original_name = Column(String(255), nullable=True)
     path = Column(String(1000), nullable=False)
     size = Column(Integer, nullable=False)  # 文件大小（字节）
     type = Column(String(50), nullable=False)  # 文件类型
@@ -22,6 +23,7 @@ class File(Base):
         return {
             'id': self.id,
             'name': self.name,
+            'original_name': self.original_name,
             'path': self.path,
             'size': self.size,
             'type': self.type,
