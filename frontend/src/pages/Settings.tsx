@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import AISettings from '@/components/AISettings';
 
 const Logo = () => (
   <svg width="48" height="48" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -151,139 +152,152 @@ export default function Settings() {
     <div className="container mx-auto py-10">
       <div className="flex items-center space-x-4 mb-8">
         <Logo />
-        <h1 className="text-3xl font-bold">存储设置</h1>
+        <h1 className="text-3xl font-bold">设置</h1>
       </div>
       
       <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>添加存储后端</CardTitle>
-            <CardDescription>配置新的存储后端以扩展存储能力</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">名称</Label>
-                  <Input id="name" name="name" placeholder="输入存储后端名称" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="type">类型</Label>
-                  <Select name="type" value={activeTab} onValueChange={setActiveTab}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择存储类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="local">本地存储</SelectItem>
-                      <SelectItem value="webdav">WebDAV</SelectItem>
-                      <SelectItem value="s3">S3 兼容存储</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <Tabs defaultValue="storage" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="storage">存储设置</TabsTrigger>
+            <TabsTrigger value="ai">AI 设置</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="storage">
+            <Card>
+              <CardHeader>
+                <CardTitle>添加存储后端</CardTitle>
+                <CardDescription>配置新的存储后端以扩展存储能力</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">名称</Label>
+                      <Input id="name" name="name" placeholder="输入存储后端名称" required />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="type">类型</Label>
+                      <Select name="type" value={activeTab} onValueChange={setActiveTab}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择存储类型" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">本地存储</SelectItem>
+                          <SelectItem value="webdav">WebDAV</SelectItem>
+                          <SelectItem value="s3">S3 兼容存储</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="local">本地存储</TabsTrigger>
-                    <TabsTrigger value="webdav">WebDAV</TabsTrigger>
-                    <TabsTrigger value="s3">S3 兼容存储</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="local" className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="path">存储路径</Label>
-                      <Input id="path" name="path" placeholder="输入本地存储路径" required />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="webdav" className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="url">服务器地址</Label>
-                      <Input id="url" name="url" placeholder="输入 WebDAV 服务器地址" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="username">用户名</Label>
-                      <Input id="username" name="username" placeholder="输入用户名" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="password">密码</Label>
-                      <Input id="password" name="password" type="password" placeholder="输入密码" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="path">存储路径</Label>
-                      <Input id="path" name="path" placeholder="输入存储路径" />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="s3" className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="endpoint">服务器地址</Label>
-                      <Input id="endpoint" name="endpoint" placeholder="输入 S3 服务器地址" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="access_key">Access Key</Label>
-                      <Input id="access_key" name="access_key" placeholder="输入 Access Key" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="secret_key">Secret Key</Label>
-                      <Input id="secret_key" name="secret_key" type="password" placeholder="输入 Secret Key" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="bucket">Bucket</Label>
-                      <Input id="bucket" name="bucket" placeholder="输入 Bucket 名称" required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="region">区域</Label>
-                      <Input id="region" name="region" placeholder="输入区域" defaultValue="us-east-1" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="path">存储路径</Label>
-                      <Input id="path" name="path" placeholder="输入存储路径" />
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              <Button type="submit">添加存储后端</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>已配置的存储后端</CardTitle>
-            <CardDescription>管理已添加的存储后端</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4">加载中...</div>
-            ) : storages.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">暂无存储后端</div>
-            ) : (
-              <div className="space-y-4">
-                {storages.map((storage: any) => (
-                  <Card key={storage.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{storage.name}</CardTitle>
-                          <CardDescription>类型: {storage.type}</CardDescription>
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="local">本地存储</TabsTrigger>
+                        <TabsTrigger value="webdav">WebDAV</TabsTrigger>
+                        <TabsTrigger value="s3">S3 兼容存储</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="local" className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="path">存储路径</Label>
+                          <Input id="path" name="path" placeholder="输入本地存储路径" required />
                         </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(storage.id)}
-                        >
-                          删除
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
-                        {JSON.stringify(JSON.parse(storage.config), null, 2)}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </TabsContent>
+                      <TabsContent value="webdav" className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="url">服务器地址</Label>
+                          <Input id="url" name="url" placeholder="输入 WebDAV 服务器地址" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="username">用户名</Label>
+                          <Input id="username" name="username" placeholder="输入用户名" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="password">密码</Label>
+                          <Input id="password" name="password" type="password" placeholder="输入密码" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="path">存储路径</Label>
+                          <Input id="path" name="path" placeholder="输入存储路径" />
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="s3" className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="endpoint">服务器地址</Label>
+                          <Input id="endpoint" name="endpoint" placeholder="输入 S3 服务器地址" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="access_key">Access Key</Label>
+                          <Input id="access_key" name="access_key" placeholder="输入 Access Key" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="secret_key">Secret Key</Label>
+                          <Input id="secret_key" name="secret_key" type="password" placeholder="输入 Secret Key" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="bucket">Bucket</Label>
+                          <Input id="bucket" name="bucket" placeholder="输入 Bucket 名称" required />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="region">区域</Label>
+                          <Input id="region" name="region" placeholder="输入区域" defaultValue="us-east-1" />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="path">存储路径</Label>
+                          <Input id="path" name="path" placeholder="输入存储路径" />
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                  <Button type="submit">添加存储后端</Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>已配置的存储后端</CardTitle>
+                <CardDescription>管理已添加的存储后端</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-4">加载中...</div>
+                ) : storages.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">暂无存储后端</div>
+                ) : (
+                  <div className="space-y-4">
+                    {storages.map((storage: any) => (
+                      <Card key={storage.id}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle>{storage.name}</CardTitle>
+                              <CardDescription>类型: {storage.type}</CardDescription>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(storage.id)}
+                            >
+                              删除
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
+                            {JSON.stringify(JSON.parse(storage.config), null, 2)}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ai">
+            <AISettings />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

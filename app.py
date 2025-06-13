@@ -2,6 +2,7 @@ from flask import Flask, render_template, send_from_directory
 from routes.storage import storage_bp
 from routes.files import files_bp
 from routes.preview import preview_bp
+from routes.ai import ai_bp
 from database import init_db
 import os
 import humanize
@@ -18,6 +19,7 @@ app.jinja_env.filters['filesizeformat'] = humanize.naturalsize
 app.register_blueprint(storage_bp)
 app.register_blueprint(files_bp, url_prefix='/files')
 app.register_blueprint(preview_bp)
+app.register_blueprint(ai_bp, url_prefix='/ai')
 
 # 初始化数据库
 init_db()

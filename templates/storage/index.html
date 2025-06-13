@@ -104,6 +104,20 @@
         </form>
     </div>
 </div>
+
+<!-- AI 设置区域 -->
+<div class="ai-settings" style="margin: 40px auto; max-width: 500px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 2rem;">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">AI 设置</h2>
+    <div class="form-group">
+        <label for="deepseekApiKey">DeepSeek API Key</label>
+        <input type="password" id="deepseekApiKey" placeholder="请输入 DeepSeek API Key" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+    <div class="form-actions" style="margin-top: 1rem;">
+        <button id="saveApiKeyBtn" class="button primary">保存</button>
+        <span id="aiSaveStatus" style="margin-left: 1rem; color: #2ecc71; display: none;">保存成功！</span>
+        <span id="aiSaveError" style="margin-left: 1rem; color: #e74c3c; display: none;">保存失败！</span>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -343,5 +357,43 @@ function deleteStorage(storageId) {
 
 // 初始调用以显示正确的配置组
 toggleStorageConfig();
+
+// AI 设置相关
+function loadAIConfig() {
+    fetch('/ai/config')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('deepseekApiKey').value = data.deepseek_api_key || '';
+        });
+}
+
+function saveAIConfig() {
+    const key = document.getElementById('deepseekApiKey').value;
+    fetch('/ai/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deepseek_api_key: key })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('aiSaveStatus').style.display = 'inline';
+        document.getElementById('aiSaveError').style.display = 'none';
+        setTimeout(() => {
+            document.getElementById('aiSaveStatus').style.display = 'none';
+        }, 2000);
+    })
+    .catch(() => {
+        document.getElementById('aiSaveStatus').style.display = 'none';
+        document.getElementById('aiSaveError').style.display = 'inline';
+        setTimeout(() => {
+            document.getElementById('aiSaveError').style.display = 'none';
+        }, 2000);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAIConfig();
+    document.getElementById('saveApiKeyBtn').onclick = saveAIConfig;
+});
 </script>
 {% endblock %} 
