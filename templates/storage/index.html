@@ -104,20 +104,6 @@
         </form>
     </div>
 </div>
-
-<!-- AI 设置区域 -->
-<div class="ai-settings" style="margin: 40px auto; max-width: 500px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 2rem;">
-    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">AI 设置</h2>
-    <div class="form-group">
-        <label for="deepseekApiKey">DeepSeek API Key</label>
-        <input type="password" id="deepseekApiKey" placeholder="请输入 DeepSeek API Key" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
-    </div>
-    <div class="form-actions" style="margin-top: 1rem;">
-        <button id="saveApiKeyBtn" class="button primary">保存</button>
-        <span id="aiSaveStatus" style="margin-left: 1rem; color: #2ecc71; display: none;">保存成功！</span>
-        <span id="aiSaveError" style="margin-left: 1rem; color: #e74c3c; display: none;">保存失败！</span>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -257,15 +243,49 @@
 .form-group select {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 1rem;
 }
 
 .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button.primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.button.secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.button.danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.button.small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.button:hover {
+    opacity: 0.9;
 }
 </style>
 {% endblock %}
@@ -282,118 +302,67 @@ function hideAddStorageModal() {
 
 function toggleStorageConfig() {
     const type = document.getElementById('type').value;
-    document.getElementById('localConfig').style.display = 'none';
-    document.getElementById('s3Config').style.display = 'none';
-
-    if (type === 'local') {
-        document.getElementById('localConfig').style.display = 'block';
-    } else if (type === 's3') {
-        document.getElementById('s3Config').style.display = 'block';
-    }
+    document.querySelectorAll('.storage-config').forEach(config => {
+        config.style.display = 'none';
+    });
+    document.getElementById(type + 'Config').style.display = 'block';
 }
 
-function activateStorage(storageId) {
-    if (confirm('确定要激活此存储池吗？所有其他存储池将变为非活动状态。')) {
-        fetch(`/api/storage/${storageId}/activate`, {
+function activateStorage(id) {
+    if (confirm('确定要激活这个存储池吗？')) {
+        fetch(`/storage/${id}/activate`, {
             method: 'POST'
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert('激活失败: ' + data.error);
-            } else {
-                alert('存储池已激活！');
+            if (data.success) {
                 location.reload();
+            } else {
+                alert('激活失败：' + data.error);
             }
         })
         .catch(error => {
-            console.error('激活存储池时发生错误:', error);
-            alert('激活存储池时发生错误。');
+            alert('激活失败：' + error);
         });
     }
 }
 
-function deactivateStorage(storageId) {
-    if (confirm('确定要停用此存储池吗？')) {
-        fetch(`/api/storage/${storageId}/deactivate`, {
+function deactivateStorage(id) {
+    if (confirm('确定要停用这个存储池吗？')) {
+        fetch(`/storage/${id}/deactivate`, {
             method: 'POST'
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert('停用失败: ' + data.error);
-            } else {
-                alert('存储池已停用！');
+            if (data.success) {
                 location.reload();
+            } else {
+                alert('停用失败：' + data.error);
             }
         })
         .catch(error => {
-            console.error('停用存储池时发生错误:', error);
-            alert('停用存储池时发生错误。');
+            alert('停用失败：' + error);
         });
     }
 }
 
-function deleteStorage(storageId) {
-    if (confirm('确定要删除此存储池吗？')) {
-        fetch(`/api/storage/${storageId}`, {
+function deleteStorage(id) {
+    if (confirm('确定要删除这个存储池吗？此操作不可恢复！')) {
+        fetch(`/storage/${id}`, {
             method: 'DELETE'
         })
         .then(response => response.json())
         .then(data => {
-            if (data.message) {
-                alert(data.message);
+            if (data.success) {
                 location.reload();
-            } else if (data.error) {
-                alert('删除失败: ' + data.error);
+            } else {
+                alert('删除失败：' + data.error);
             }
         })
         .catch(error => {
-            console.error('删除存储池时发生错误:', error);
-            alert('删除存储池时发生错误。');
+            alert('删除失败：' + error);
         });
     }
 }
-
-// 初始调用以显示正确的配置组
-toggleStorageConfig();
-
-// AI 设置相关
-function loadAIConfig() {
-    fetch('/ai/config')
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('deepseekApiKey').value = data.deepseek_api_key || '';
-        });
-}
-
-function saveAIConfig() {
-    const key = document.getElementById('deepseekApiKey').value;
-    fetch('/ai/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deepseek_api_key: key })
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById('aiSaveStatus').style.display = 'inline';
-        document.getElementById('aiSaveError').style.display = 'none';
-        setTimeout(() => {
-            document.getElementById('aiSaveStatus').style.display = 'none';
-        }, 2000);
-    })
-    .catch(() => {
-        document.getElementById('aiSaveStatus').style.display = 'none';
-        document.getElementById('aiSaveError').style.display = 'inline';
-        setTimeout(() => {
-            document.getElementById('aiSaveError').style.display = 'none';
-        }, 2000);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadAIConfig();
-    document.getElementById('saveApiKeyBtn').onclick = saveAIConfig;
-});
 </script>
 {% endblock %} 

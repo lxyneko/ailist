@@ -5,16 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AiList - 现代化的文件管理系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .navbar-logo {
+            width: 32px;
+            height: 32px;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
-            <a href="/" class="navbar-brand">AiList</a>
+            <a href="/" class="navbar-brand">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="AiList Logo" class="navbar-logo">
+                <span>AiList</span>
+            </a>
             <div class="navbar-menu">
                 <a href="/" class="navbar-item">首页</a>
                 <a href="{{ url_for('files.index') }}" class="navbar-item">文件</a>
                 <a href="/storage" class="navbar-item">存储</a>
+                <a href="{{ url_for('ai.config') }}" class="navbar-item">AI 配置</a>
             </div>
         </div>
     </nav>

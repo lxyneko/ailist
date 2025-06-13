@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template
 from services.ai_service import AIService
 from models.file import File
 from database import db_session
@@ -23,12 +23,18 @@ def save_config(config):
         json.dump(config, f)
 
 @ai_bp.route('/config', methods=['GET'])
+def config():
+    """AI配置页面"""
+    config = load_config()
+    return render_template('ai/config.html', config=config)
+
+@ai_bp.route('/api/config', methods=['GET'])
 def get_config():
     """获取AI配置"""
     config = load_config()
     return jsonify(config)
 
-@ai_bp.route('/config', methods=['POST'])
+@ai_bp.route('/api/config', methods=['POST'])
 def update_config():
     """更新AI配置"""
     config = request.json
