@@ -1,32 +1,127 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="hero">
-    <h1>欢迎使用 AiList</h1>
-    <p>一个现代化的文件管理系统</p>
-    <div class="hero-buttons">
-        <a href="/files" class="button primary">浏览文件</a>
-        <a href="/storage" class="button secondary">管理存储</a>
-        <a href="{{ url_for('ai.config') }}" class="button primary">AI 配置</a>
-    </div>
-</div>
+{% block title %}AiList - 现代化的文件管理系统{% endblock %}
 
-<div class="features">
-    <div class="feature-card">
-        <h3>文件管理</h3>
-        <p>轻松管理和组织您的文件</p>
+{% block content %}
+<div class="container">
+    <!-- 欢迎信息 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">欢迎使用 AiList</h1>
+                    <p class="card-text">一个现代化的文件管理系统，集成了AI智能分析功能，让您的文件管理更加高效。</p>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="feature-card">
-        <h3>智能存储</h3>
-        <p>支持多种存储方式</p>
+
+    <!-- 统计信息 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">文件总数</h5>
+                    <p class="card-text display-4">{{ total_files }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">存储池数量</h5>
+                    <p class="card-text display-4">{{ total_storage }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">当前存储池</h5>
+                    {% if storage_usage %}
+                    <p class="card-text">{{ storage_usage.name }} ({{ storage_usage.type }})</p>
+                    <p class="card-text">文件数：{{ storage_usage.files_count }}</p>
+                    {% else %}
+                    <p class="card-text text-muted">未激活存储池</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="feature-card">
-        <h3>AI 分析</h3>
-        <p>智能分析文件内容</p>
+
+    <!-- 最近文件 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">最近上传的文件</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>文件名</th>
+                                    <th>大小</th>
+                                    <th>上传时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in recent_files %}
+                                <tr>
+                                    <td>{{ file.original_name }}</td>
+                                    <td>{{ file.size|filesizeformat }}</td>
+                                    <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('files.download', id=file.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-download"></i> 下载
+                                            </a>
+                                            <a href="{{ url_for('ai.analysis', id=file.id) }}" class="btn btn-sm btn-info">
+                                                <i class="bi bi-robot"></i> AI分析
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">暂无文件</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="feature-card">
-        <h3>安全可靠</h3>
-        <p>保护您的数据安全</p>
+
+    <!-- 快速操作 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">快速操作</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('files.index') }}" class="btn btn-primary">
+                            <i class="bi bi-folder"></i> 文件管理
+                        </a>
+                        <a href="{{ url_for('storage.index') }}" class="btn btn-success">
+                            <i class="bi bi-hdd-stack"></i> 存储管理
+                        </a>
+                        <a href="{{ url_for('ai.config') }}" class="btn btn-info">
+                            <i class="bi bi-gear"></i> AI配置
+                        </a>
+                        <a href="{{ url_for('ai.search') }}" class="btn btn-warning">
+                            <i class="bi bi-search"></i> 智能搜索
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %} 

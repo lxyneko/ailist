@@ -127,7 +127,7 @@ def index():
     size_unit = request.args.get('size_unit', 'B')
     file_type = request.args.get('file_type', '')
     
-    # 获取当前活跃的存储池
+    # 获取当前激活的存储池
     active_pool = Storage.query.filter_by(is_active=True).first()
     if not active_pool:
         flash('请先配置存储池', 'error')
@@ -223,87 +223,105 @@ def list_files():
     files = db_session.query(File).filter_by(storage_id=storage.id).all()
     return jsonify([file.to_dict() for file in files])
 
-@files_bp.route('/api/files/upload', methods=['POST'])
+@files_bp.route('/upload', methods=['POST'])
 def upload_file():
-    """上传文件到当前存储池"""
-    if 'file' not in request.files:
-        return jsonify({'error': '没有文件'}), 400
+    """上传文件"""
+    if 'files[]' not in request.files:
+        return jsonify({'success': False, 'message': '没有选择文件'})
     
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': '没有选择文件'}), 400
+    files = request.files.getlist('files[]')
+    if not files or files[0].filename == '':
+        return jsonify({'success': False, 'message': '没有选择文件'})
     
-    # 获取当前活动的存储池
-    storage = db_session.query(Storage).filter_by(is_active=1).first()
-    if not storage:
-        return jsonify({'error': '没有活动的存储池'}), 404
+    # 获取当前激活的存储池
+    active_pool = Storage.query.filter_by(is_active=True).first()
+    if not active_pool:
+        return jsonify({'success': False, 'message': '请先激活一个存储池'})
+    
+    # 获取存储客户端
+    storage_client = get_storage_client(active_pool)
+    
+    uploaded_files = []
+    for file in files:
+        try:
+            # 生成安全的文件名
+            filename = secure_filename(file.filename)
+            # 生成存储路径
+            file_path = f"{datetime.datetime.now().strftime('%Y%m%d')}/{filename}"
+            
+            # 保存文件
+            file_content = file.read()
+            storage_client.save_file(file_path, file_content)
+            
+            # 创建文件记录
+            file_record = File(
+                name=filename,
+                original_name=file.filename,
+                path=file_path,
+                size=len(file_content),
+                type=os.path.splitext(filename)[1][1:],
+                mime_type=file.content_type,
+                storage_id=active_pool.id
+            )
+            db_session.add(file_record)
+            uploaded_files.append(file_record)
+            
+        except Exception as e:
+            current_app.logger.error(f"上传文件失败: {str(e)}")
+            return jsonify({'success': False, 'message': f'上传文件失败: {str(e)}'})
     
     try:
-        # 获取存储客户端
-        storage_client = get_storage_client(storage)
-        
-        # 净化文件名
-        secured_filename = secure_filename(file.filename)
-
-        file_size = 0
-        file_path = ""
-
-        if storage.type == 'local':
-            file_path = storage_client.save_file(file, secured_filename)
-            file_size = os.path.getsize(file_path) # 获取实际文件大小
-        elif storage.type == 's3':
-            file_path = storage_client.save_file(file, secured_filename)
-            file_size = file.content_length # 对于 S3，使用 content_length
-        else:
-            flash('不支持的存储类型', 'error')
-            return jsonify({'error': '不支持的存储类型'}), 400
-        
-        # 创建文件记录
-        file_record = File(
-            name=secured_filename,
-            original_name=file.filename,
-            size=file_size, 
-            type=mimetypes.guess_type(secured_filename)[0] or 'application/octet-stream',
-            storage_id=storage.id,
-            path=file_path
-        )
-        
-        db_session.add(file_record)
         db_session.commit()
-        
-        flash('文件上传成功！', 'success')
-        return redirect(url_for('files.index'))
-    
+        return jsonify({
+            'success': True,
+            'message': f'成功上传 {len(uploaded_files)} 个文件',
+            'files': [f.to_dict() for f in uploaded_files]
+        })
     except Exception as e:
-        flash(f'文件上传失败: {str(e)}', 'error')
-        return jsonify({'error': str(e)}), 500
+        db_session.rollback()
+        current_app.logger.error(f"保存文件记录失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'保存文件记录失败: {str(e)}'})
 
-@files_bp.route('/api/files/<int:file_id>', methods=['GET'])
+@files_bp.route('/download/<int:file_id>')
 def download_file(file_id):
     """下载文件"""
-    # 获取当前活动的存储池
-    storage = db_session.query(Storage).filter_by(is_active=1).first()
-    if not storage:
-        return jsonify({'error': '没有活动的存储池'}), 404
-    
-    # 查找文件记录
-    file_record = db_session.query(File).filter_by(
-        storage_id=storage.id,
-        id=file_id
-    ).first()
-    
+    # 获取文件记录
+    file_record = db_session.query(File).get(file_id)
     if not file_record:
-        return jsonify({'error': '文件不存在'}), 404
+        flash('文件不存在', 'error')
+        return redirect(url_for('files.index'))
+    
+    # 获取存储池
+    storage = db_session.query(Storage).get(file_record.storage_id)
+    if not storage:
+        flash('存储池不存在', 'error')
+        return redirect(url_for('files.index'))
     
     try:
         # 获取存储客户端
         storage_client = get_storage_client(storage)
         
         # 获取文件
-        return storage_client.get_file(file_record.path)
+        file_path = storage_client.get_file(file_record.path)
+        if not file_path:
+            flash('文件不存在', 'error')
+            return redirect(url_for('files.index'))
+        
+        # 如果是S3存储，返回预签名URL
+        if storage.type == 's3':
+            return redirect(file_path)
+        
+        # 如果是本地存储，直接发送文件
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=file_record.original_name,
+            mimetype=file_record.type
+        )
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        flash(f'下载文件时出错: {str(e)}', 'error')
+        return redirect(url_for('files.index'))
 
 @files_bp.route('/api/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):

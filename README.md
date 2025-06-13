@@ -1,106 +1,92 @@
 # AiList
 
-AiList 是一个现代化的文件管理系统，支持多种存储后端，提供优雅的用户界面和强大的文件管理功能。
+一个现代化的文件管理系统，集成了AI智能分析功能。
 
-## 特性
+## 免责声明
 
-- 支持多种存储后端（本地存储、S3、WebDAV等）
-- 智能文件预览功能（支持图片、文档、表格等）
-- 完整的文件管理功能（上传、下载、删除、重命名等）
-- WebDAV 协议支持
-- 安全的用户认证系统
-- 响应式设计，支持移动端
-- 暗色模式支持
-- AI 辅助功能
+本项目仅供个人学习使用，不保证功能实现。使用本项目产生的任何问题，作者不承担任何责任。
+
+## 功能特点
+
+- 文件管理：上传、下载、删除文件
+- 存储管理：支持本地存储和S3存储
+- AI分析：文件内容分析、标签生成、情感分析
+- 智能搜索：语义搜索、关键词搜索、内容搜索
+- 多语言支持：支持中文和英文内容分析
 
 ## 技术栈
 
-### 后端
-- Flask 2.0.1
-- FastAPI 0.68.1
-- SQLAlchemy 2.0+
-- Alembic 1.12.1
-- Python 3.8+
-- OpenAI API 集成
-- 文件处理库（python-docx, openpyxl, python-pptx, Pillow）
-- WebDAV 客户端支持
-- AWS S3 集成
+- 后端：Python + Flask
+- 数据库：SQLite
+- 前端：HTML + CSS + JavaScript + Bootstrap
+- AI：DeepSeek API
 
-### 前端
-- SCSS
-- TypeScript
-- React
-- TailwindCSS
+## 安装
 
-## 开发环境设置
-
-1. 克隆仓库
+1. 克隆项目
 ```bash
-git clone https://github.com/lxyneko/ailist.git
+git clone https://github.com/yourusername/ailist.git
 cd ailist
 ```
 
-2. 创建并激活虚拟环境
-```bash
-python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. 安装后端依赖
+2. 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-4. 配置环境变量
-创建 `.env` 文件并设置必要的环境变量：
-```env
-DATABASE_URL=sqlite:///./ailist.db
-SECRET_KEY=your-secret-key
-OPENAI_API_KEY=your-openai-api-key
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=your-aws-region
+3. 初始化数据库
+```bash
+python init_db.py
 ```
 
-5. 启动开发服务器
+4. 运行应用
 ```bash
-# 使用 Flask
 python app.py
-
-# 或使用 FastAPI
-uvicorn app.main:app --reload
 ```
 
-## 项目结构
+## 配置
 
-```
-ailist/
-├── app/            # FastAPI 应用目录
-├── models/         # 数据模型
-├── routes/         # API 路由
-├── services/       # 业务逻辑服务
-├── static/         # 静态文件
-├── storage/        # 文件存储
-├── templates/      # 模板文件
-├── venv/           # Python 虚拟环境
-├── .venv/          # 备用虚拟环境
-├── app.py          # Flask 应用入口
-├── database.py     # 数据库配置
-├── requirements.txt # Python 依赖
-├── test_api.py     # API 测试
-└── README.md       # 项目文档
-```
+1. 配置存储池
+   - 本地存储：设置存储路径
+   - S3存储：配置Access Key、Secret Key、Bucket和Region
 
-## 测试
+2. 配置AI
+   - 设置DeepSeek API密钥
+   - 调整温度参数
 
-项目包含完整的测试套件，可以通过以下命令运行测试：
+## 使用说明
 
-```bash
-python test_api.py
-```
+1. 文件管理
+   - 上传文件：支持拖拽上传和批量上传
+   - 下载文件：点击下载按钮
+   - 删除文件：点击删除按钮
+
+2. 存储管理
+   - 创建存储池：设置名称和类型
+   - 激活存储池：点击激活按钮
+   - 编辑存储池：修改配置信息
+   - 删除存储池：点击删除按钮
+
+3. AI分析
+   - 配置API：设置API密钥和参数
+   - 分析文件：点击AI分析按钮
+   - 查看结果：显示摘要、标签和情感分析
+
+4. 智能搜索
+   - 语义搜索：基于文件内容的语义理解
+   - 关键词搜索：基于标签和文件名
+   - 内容搜索：基于文件内容
+
+## 注意事项
+
+1. 本项目仅供学习使用，不建议用于生产环境
+2. 使用前请确保已正确配置存储池和AI API
+3. 定期备份重要数据
+4. 注意API使用限制和费用
+
+## 贡献
+
+欢迎提交Issue和Pull Request。
 
 ## 许可证
 

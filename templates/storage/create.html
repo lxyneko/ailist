@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}新建存储池 - AiList{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title mb-0">新建存储池</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('storage.create') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">名称</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="type" class="form-label">类型</label>
+                            <select class="form-select" id="type" name="type" required onchange="toggleStorageConfig()">
+                                <option value="local">本地存储</option>
+                                <option value="s3">S3 存储</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 本地存储配置 -->
+                        <div id="localConfig" class="storage-config">
+                            <div class="mb-3">
+                                <label for="path" class="form-label">存储路径</label>
+                                <input type="text" class="form-control" id="path" name="path" placeholder="/path/to/storage">
+                            </div>
+                        </div>
+                        
+                        <!-- S3 存储配置 -->
+                        <div id="s3Config" class="storage-config" style="display: none;">
+                            <div class="mb-3">
+                                <label for="access_key" class="form-label">Access Key</label>
+                                <input type="text" class="form-control" id="access_key" name="access_key">
+                            </div>
+                            <div class="mb-3">
+                                <label for="secret_key" class="form-label">Secret Key</label>
+                                <input type="password" class="form-control" id="secret_key" name="secret_key">
+                            </div>
+                            <div class="mb-3">
+                                <label for="bucket" class="form-label">Bucket</label>
+                                <input type="text" class="form-control" id="bucket" name="bucket">
+                            </div>
+                            <div class="mb-3">
+                                <label for="region" class="form-label">Region</label>
+                                <input type="text" class="form-control" id="region" name="region">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('storage.index') }}" class="btn btn-secondary">返回</a>
+                            <button type="submit" class="btn btn-primary">创建</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleStorageConfig() {
+    const type = document.getElementById('type').value;
+    document.querySelectorAll('.storage-config').forEach(config => {
+        config.style.display = 'none';
+    });
+    document.getElementById(type + 'Config').style.display = 'block';
+}
+</script>
+{% endblock %} 

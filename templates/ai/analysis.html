@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}文件分析 - AiList{% endblock %}
+
+{% block content %}
+<div class="analysis-container">
+    <div class="analysis-header">
+        <h1>文件分析结果</h1>
+        <a href="{{ url_for('files.index') }}" class="button secondary">返回文件列表</a>
+    </div>
+
+    <div class="file-info">
+        <h2>文件信息</h2>
+        <p><strong>文件名：</strong>{{ file.original_name }}</p>
+        <p><strong>类型：</strong>{{ file.type }}</p>
+        <p><strong>大小：</strong>{{ file.size|filesizeformat }}</p>
+        <p><strong>上传时间：</strong>{{ file.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    </div>
+
+    <div class="analysis-results">
+        <div class="result-section">
+            <h2>内容摘要</h2>
+            <div class="summary-box">
+                {{ analysis.content_summary }}
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2>建议标签</h2>
+            <div class="tags-box">
+                {% for tag in analysis.suggested_tags|from_json %}
+                    <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2>情感分析</h2>
+            <div class="sentiment-box">
+                <div class="sentiment-score">
+                    情感得分：{{ "%.2f"|format(analysis.sentiment_score) }}
+                </div>
+                <div class="sentiment-bar">
+                    <div class="sentiment-fill" style="width: {{ (analysis.sentiment_score + 1) * 50 }}%"></div>
+                </div>
+                <div class="sentiment-labels">
+                    <span>负面</span>
+                    <span>中性</span>
+                    <span>正面</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.analysis-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.file-info {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.analysis-results {
+    display: grid;
+    gap: 2rem;
+}
+
+.result-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.summary-box {
+    line-height: 1.6;
+    color: #333;
+}
+
+.tags-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.sentiment-box {
+    text-align: center;
+}
+
+.sentiment-score {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.sentiment-bar {
+    height: 20px;
+    background: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.sentiment-fill {
+    height: 100%;
+    background: linear-gradient(to right, #e74c3c, #f1c40f, #2ecc71);
+    transition: width 0.3s ease;
+}
+
+.sentiment-labels {
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function analyzeFile(fileId) {
+    fetch(`/ai/analysis/${fileId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('分析失败：' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('请求失败：' + error);
+    });
+}
+</script>
+{% endblock %} 

@@ -1,17 +1,24 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy.orm import relationship
 from database import Base
+import datetime
 
 class Storage(Base):
     __tablename__ = 'storages'
-
+    
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    type = Column(String(20), nullable=False)  # 'local' 或 's3'
-    config = Column(Text, nullable=False)  # JSON 格式的配置信息
-    is_active = Column(Integer, default=0)  # 0: 非活动, 1: 活动
-    created_at = Column(DateTime, default=func.now())
-
+    type = Column(String(50), nullable=False)  # local, s3
+    config = Column(Text, nullable=False)  # JSON配置
+    is_active = Column(Boolean, default=False)  # 是否激活
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    files = relationship('File', back_populates='storage')
+    
+    def __repr__(self):
+        return f'<Storage {self.name}>'
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -19,5 +26,6 @@ class Storage(Base):
             'type': self.type,
             'config': self.config,
             'is_active': self.is_active,
-            'created_at': str(self.created_at) # Convert datetime to string for JSON serialization
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         } 

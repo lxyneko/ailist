@@ -1,112 +1,151 @@
 {% extends "base.html" %}
 
+{% block title %}AI配置 - AiList{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>AI 配置</h1>
-    <div class="config-form">
-        <form id="aiConfigForm">
+<div class="config-container">
+    <div class="config-header">
+        <h1>AI配置</h1>
+    </div>
+
+    <div class="config-form-container">
+        <form action="{{ url_for('ai.config') }}" method="post" class="config-form">
             <div class="form-group">
-                <label for="apiKey">API Key</label>
-                <input type="password" id="apiKey" name="apiKey" class="form-control">
+                <label for="api_key">DeepSeek API密钥</label>
+                <input type="password" id="api_key" name="api_key" class="form-input" value="{{ config.apiKey }}" required>
+                <p class="form-help">在DeepSeek平台获取API密钥</p>
             </div>
+
             <div class="form-group">
-                <label for="model">模型</label>
-                <select id="model" name="model" class="form-control">
-                    <option value="deepseek-r1">DeepSeek R1</option>
-                    <option value="deepseek-v3" selected>DeepSeek V3</option>
-                </select>
+                <label for="temperature">温度值</label>
+                <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="{{ config.temperature }}" class="form-range">
+                <div class="range-labels">
+                    <span>精确</span>
+                    <span>平衡</span>
+                    <span>创意</span>
+                </div>
+                <p class="form-help">控制AI响应的随机性，值越低越精确，值越高越有创意</p>
             </div>
-            <div class="form-group">
-                <label for="temperature">温度</label>
-                <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7" class="form-control">
-                <span id="temperatureValue">0.7</span>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">保存配置</button>
+                <button type="button" class="button secondary" onclick="testConnection()">测试连接</button>
             </div>
-            <button type="submit" class="button primary">保存配置</button>
         </form>
     </div>
 </div>
+{% endblock %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 加载当前配置
-    fetch('/ai/config')
-        .then(response => response.json())
-        .then(config => {
-            document.getElementById('apiKey').value = config.apiKey || '';
-            document.getElementById('model').value = config.model || 'deepseek-v3';
-            document.getElementById('temperature').value = config.temperature || 0.7;
-            document.getElementById('temperatureValue').textContent = config.temperature || 0.7;
-        });
-
-    // 温度滑块实时显示
-    document.getElementById('temperature').addEventListener('input', function(e) {
-        document.getElementById('temperatureValue').textContent = e.target.value;
-    });
-
-    // 提交表单
-    document.getElementById('aiConfigForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const config = {
-            apiKey: document.getElementById('apiKey').value,
-            model: document.getElementById('model').value,
-            temperature: parseFloat(document.getElementById('temperature').value)
-        };
-
-        fetch('/ai/config', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(config)
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert('配置已保存');
-        })
-        .catch(error => {
-            alert('保存配置失败：' + error);
-        });
-    });
-});
-</script>
-
+{% block extra_css %}
 <style>
-.config-form {
-    max-width: 600px;
-    margin: 2rem auto;
+.config-container {
     padding: 2rem;
-    background: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.config-header {
+    margin-bottom: 2rem;
+}
+
+.config-form-container {
+    background: white;
+    padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
 .form-group {
-    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
     font-weight: 500;
+    color: var(--text-color);
 }
 
-.form-control {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
+.form-input {
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
 }
 
-#temperatureValue {
-    margin-left: 1rem;
-    color: #666;
+.form-range {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #eee;
+    border-radius: 4px;
+    outline: none;
 }
 
-.button {
-    width: 100%;
-    padding: 0.75rem;
-    font-size: 1rem;
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.form-help {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function testConnection() {
+    const apiKey = document.getElementById('api_key').value;
+    if (!apiKey) {
+        alert('请输入API密钥');
+        return;
+    }
+
+    fetch('/ai/api/test-connection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ api_key: apiKey })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('连接测试成功！');
+        } else {
+            alert('连接测试失败：' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('连接测试失败：' + error);
+    });
+}
+</script>
 {% endblock %} 

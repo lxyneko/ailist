@@ -1,368 +1,138 @@
 {% extends "base.html" %}
 
-{% block title %}存储管理 - AiList{% endblock %}
+{% block title %}存储池管理 - AiList{% endblock %}
 
 {% block content %}
-<div class="storage-container">
-    <div class="storage-header">
-        <h1>存储管理</h1>
-        <button class="button primary" onclick="showAddStorageModal()">添加存储池</button>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>存储池管理</h1>
+        <a href="{{ url_for('storage.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> 新建存储池
+        </a>
     </div>
 
-    <div class="storage-list">
-        <table>
-            <thead>
-                <tr>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>状态</th>
-                    <th>创建时间</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for storage in storages %}
-                <tr>
-                    <td><span class="storage-icon {{ storage.type }}"></span>{{ storage.name }}</td>
-                    <td>{{ storage.type }}</td>
-                    <td>
-                        {% if storage.is_active %}
-                        <span class="status active">活动</span>
-                        {% else %}
-                        <span class="status inactive">非活动</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ storage.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
-                        {% if not storage.is_active %}
-                        <button onclick="activateStorage({{ storage.id }})" class="button small">激活</button>
-                        {% else %}
-                        <button onclick="deactivateStorage({{ storage.id }})" class="button small secondary">停用</button>
-                        {% endif %}
-                        <button onclick="deleteStorage({{ storage.id }})" class="button small danger">删除</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-<!-- 添加存储池模态框 -->
-<div id="addStorageModal" class="modal">
-    <div class="modal-content">
-        <h2>添加存储池</h2>
-        <form id="addStorageForm" action="{{ url_for('storage.add_storage') }}" method="post">
-            <div class="form-group">
-                <label for="name">名称</label>
-                <input type="text" id="name" name="name" required>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>类型</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for storage in storages %}
+                        <tr>
+                            <td>{{ storage.name }}</td>
+                            <td>{{ storage.type }}</td>
+                            <td>
+                                {% if storage.is_active %}
+                                <span class="badge bg-success">已激活</span>
+                                {% else %}
+                                <span class="badge bg-secondary">未激活</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if not storage.is_active %}
+                                    <button class="btn btn-sm btn-success activate-btn" 
+                                            data-id="{{ storage.id }}"
+                                            data-url="{{ url_for('storage.activate', id=storage.id) }}">
+                                        <i class="bi bi-check-lg"></i> 激活
+                                    </button>
+                                    {% endif %}
+                                    <a href="{{ url_for('storage.edit', id=storage.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil"></i> 编辑
+                                    </a>
+                                    <button class="btn btn-sm btn-danger delete-btn"
+                                            data-id="{{ storage.id }}"
+                                            data-url="{{ url_for('storage.delete', id=storage.id) }}">
+                                        <i class="bi bi-trash"></i> 删除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="form-group">
-                <label for="type">类型</label>
-                <select id="type" name="type" required onchange="toggleStorageConfig()">
-                    <option value="local">本地存储</option>
-                    <option value="s3">S3 存储</option>
-                    <option value="google_drive">Google Drive</option>
-                    <option value="onedrive">OneDrive</option>
-                    <option value="dropbox">Dropbox</option>
-                    <option value="baidu_cloud">百度网盘</option>
-                </select>
-            </div>
-            
-            <!-- 本地存储配置 -->
-            <div id="localConfig" class="storage-config">
-                <div class="form-group">
-                    <label for="path">存储路径</label>
-                    <input type="text" id="path" name="path" placeholder="/path/to/storage">
-                </div>
-            </div>
-            
-            <!-- S3 存储配置 -->
-            <div id="s3Config" class="storage-config" style="display: none;">
-                <div class="form-group">
-                    <label for="access_key">Access Key</label>
-                    <input type="text" id="access_key" name="access_key">
-                </div>
-                <div class="form-group">
-                    <label for="secret_key">Secret Key</label>
-                    <input type="password" id="secret_key" name="secret_key">
-                </div>
-                <div class="form-group">
-                    <label for="bucket">Bucket</label>
-                    <input type="text" id="bucket" name="bucket">
-                </div>
-                <div class="form-group">
-                    <label for="region">Region</label>
-                    <input type="text" id="region" name="region">
-                </div>
-            </div>
-            
-            <div class="form-actions">
-                <button type="button" class="button secondary" onclick="hideAddStorageModal()">取消</button>
-                <button type="submit" class="button primary">添加</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-.storage-container {
-    padding: 2rem;
-}
-
-.storage-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.storage-list table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.storage-list th,
-.storage-list td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.storage-list th {
-    background-color: var(--background-color);
-    font-weight: 600;
-}
-
-.status {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.status.active {
-    background-color: #2ecc71;
-    color: white;
-}
-
-.status.inactive {
-    background-color: #95a5a6;
-    color: white;
-}
-
-/* 存储池 Logo 样式 */
-.storage-icon {
-    display: inline-block;
-    width: 20px; /* Logo 宽度 */
-    height: 20px; /* Logo 高度 */
-    margin-right: 8px;
-    vertical-align: middle;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-/* 具体存储类型的 Logo */
-.storage-icon.local {
-    /* background-image: url('/static/img/local-storage-logo.png'); */
-    /* 请将 /static/img/local-storage-logo.png 替换为你的本地存储 Logo 图片路径 */
-    background-color: #3498db; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-.storage-icon.s3 {
-    /* background-image: url('/static/img/s3-logo.png'); */
-    background-color: #f39c12; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-.storage-icon.google_drive {
-    /* background-image: url('/static/img/google-drive-logo.png'); */
-    background-color: #e74c3c; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-.storage-icon.onedrive {
-    /* background-image: url('/static/img/onedrive-logo.png'); */
-    background-color: #27ae60; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-.storage-icon.dropbox {
-    /* background-image: url('/static/img/dropbox-logo.png'); */
-    background-color: #34495e; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-.storage-icon.baidu_cloud {
-    /* background-image: url('/static/img/baidu-cloud-logo.png'); */
-    background-color: #2c3e50; /* 示例颜色 */
-    border-radius: 4px;
-}
-
-/* 模态框样式 */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    z-index: 1000;
-}
-
-.modal-content {
-    position: relative;
-    background-color: white;
-    margin: 10% auto;
-    padding: 2rem;
-    width: 90%;
-    max-width: 600px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.button.primary {
-    background-color: #3498db;
-    color: white;
-}
-
-.button.secondary {
-    background-color: #95a5a6;
-    color: white;
-}
-
-.button.danger {
-    background-color: #e74c3c;
-    color: white;
-}
-
-.button.small {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.9rem;
-}
-
-.button:hover {
-    opacity: 0.9;
-}
-</style>
-{% endblock %}
-
-{% block extra_js %}
+{% block scripts %}
 <script>
-function showAddStorageModal() {
-    document.getElementById('addStorageModal').style.display = 'block';
-}
-
-function hideAddStorageModal() {
-    document.getElementById('addStorageModal').style.display = 'none';
-}
-
-function toggleStorageConfig() {
-    const type = document.getElementById('type').value;
-    document.querySelectorAll('.storage-config').forEach(config => {
-        config.style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    // 激活存储池
+    document.querySelectorAll('.activate-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('确定要激活此存储池吗？')) {
+                fetch(this.dataset.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert(data.message || '激活失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('激活失败');
+                });
+            }
+        });
     });
-    document.getElementById(type + 'Config').style.display = 'block';
-}
 
-function activateStorage(id) {
-    if (confirm('确定要激活这个存储池吗？')) {
-        fetch(`/storage/${id}/activate`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('激活失败：' + data.error);
+    // 删除存储池
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('确定要删除此存储池吗？此操作不可恢复！')) {
+                fetch(this.dataset.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert(data.message || '删除失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除失败');
+                });
             }
-        })
-        .catch(error => {
-            alert('激活失败：' + error);
         });
-    }
-}
-
-function deactivateStorage(id) {
-    if (confirm('确定要停用这个存储池吗？')) {
-        fetch(`/storage/${id}/deactivate`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('停用失败：' + data.error);
-            }
-        })
-        .catch(error => {
-            alert('停用失败：' + error);
-        });
-    }
-}
-
-function deleteStorage(id) {
-    if (confirm('确定要删除这个存储池吗？此操作不可恢复！')) {
-        fetch(`/storage/${id}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('删除失败：' + data.error);
-            }
-        })
-        .catch(error => {
-            alert('删除失败：' + error);
-        });
-    }
-}
+    });
+});
 </script>
 {% endblock %} 

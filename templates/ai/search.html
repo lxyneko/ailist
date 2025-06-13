@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}智能搜索 - AiList{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <div class="search-header">
+        <h1>智能搜索</h1>
+    </div>
+
+    <div class="search-form-container">
+        <form action="{{ url_for('ai.search') }}" method="get" class="search-form">
+            <div class="search-input-group">
+                <input type="text" name="q" value="{{ query }}" placeholder="输入搜索关键词..." class="search-input">
+                <button type="submit" class="button primary">搜索</button>
+            </div>
+            
+            <div class="search-options">
+                <label class="option">
+                    <input type="checkbox" name="semantic" value="true" {% if semantic %}checked{% endif %}>
+                    启用语义搜索
+                </label>
+                <label class="option">
+                    <input type="checkbox" name="content" value="true" {% if content %}checked{% endif %}>
+                    搜索文件内容
+                </label>
+            </div>
+        </form>
+    </div>
+
+    {% if query %}
+        <div class="search-results">
+            <h2>搜索结果</h2>
+            {% if results %}
+                <div class="results-grid">
+                    {% for file in results %}
+                        <div class="result-card">
+                            <div class="file-info">
+                                <h3>{{ file.original_name }}</h3>
+                                <p class="file-meta">
+                                    <span>{{ file.type }}</span>
+                                    <span>{{ file.size|filesizeformat }}</span>
+                                    <span>{{ file.created_at.strftime('%Y-%m-%d') }}</span>
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <a href="{{ url_for('files.download_file', file_id=file.id) }}" class="button small">下载</a>
+                                <button onclick="deleteFile('{{ url_for('files.delete_file', file_id=file.id) }}')" class="button small danger">删除</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results">
+                    <p>没有找到匹配的文件</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.search-header {
+    margin-bottom: 2rem;
+}
+
+.search-form-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.search-options {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+}
+
+.search-results {
+    margin-top: 2rem;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.result-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.file-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-color);
+}
+
+.file-meta {
+    display: flex;
+    gap: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.no-results {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.no-results p {
+    color: #666;
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const query = document.getElementById('searchQuery').value;
+    const semantic = document.getElementById('semanticSearch').checked;
+    const content = document.getElementById('contentSearch').checked;
+    
+    window.location.href = `/ai/search?q=${encodeURIComponent(query)}&semantic=${semantic}&content=${content}`;
+});
+</script>
+{% endblock %} 

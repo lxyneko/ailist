@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
@@ -8,16 +8,18 @@ class File(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
-    original_name = Column(String(255), nullable=True)
-    path = Column(String(1000), nullable=False)
+    original_name = Column(String(255), nullable=False)
+    path = Column(String(255), nullable=False)
     size = Column(Integer, nullable=False)  # 文件大小（字节）
     type = Column(String(50), nullable=False)  # 文件类型
+    mime_type = Column(String(100))
+    content = Column(Text)
     storage_id = Column(Integer, ForeignKey('storages.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # 关联到存储池
-    storage = relationship("Storage", backref="files")
+    storage = relationship('Storage', back_populates='files')
 
     def to_dict(self):
         return {
@@ -27,7 +29,11 @@ class File(Base):
             'path': self.path,
             'size': self.size,
             'type': self.type,
+            'mime_type': self.mime_type,
             'storage_id': self.storage_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
-        } 
+        }
+
+    def __repr__(self):
+        return f'<File {self.name}>' 
